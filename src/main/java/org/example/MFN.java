@@ -63,14 +63,20 @@ public class MFN {
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             String line;
             while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
                 StringTokenizer st = new StringTokenizer(line, ",; ");
                 int[] path = new int[st.countTokens()];
                 int i = 0;
                 while (st.hasMoreTokens()) {
-                    // Zakładamy, że w pliku są indeksy (np. 1, 2, 3), w Javie tablice są od 0.
-                    // Jeśli dane w CSV są indeksowane od 1, trzeba odjąć 1.
-                    // Tu zakładam surowe dane int. Dostosuj -1 jeśli w CSV są ID od 1.
-                    path[i++] = Integer.parseInt(st.nextToken().trim());
+                    String token = st.nextToken().trim();
+                    try {
+                        double val = Double.parseDouble(token);
+                        path[i++] = (int) val;
+                    } catch (NumberFormatException e) {
+                        System.err.println("Error while paring token from CSV file: " + token);
+                        throw e;
+                    }
                 }
                 MPs.add(path);
             }
@@ -79,7 +85,8 @@ public class MFN {
         }
     }
 
-    public double[][] calculatePMF() { // Based on formula (1) - Probability Mass Function for each connection
+    // Based on formula (1) - Probability Mass Function for each connection
+    public double[][] calculatePMF() {
         double[][] pmf = new double[m][];
 
         for (int i = 0; i < m; i++) {
@@ -89,11 +96,8 @@ public class MFN {
             double r = R[i];
             double b = beta[i];
 
-            // Obliczenie P(X >= 1) pomocniczo do stanu 0
-            // Wzór (1) dla k=0: 1 - (1/beta)*(1 - (1 - r*beta)^w_i) - co wynika z sumy prawdopodobieństw
-            // Ale w artykule [cite: 606] jest wprost podany wzór dla k=0.
+            // formula (1) k=0: 1 - (1/beta)*(1 - (1 - r*beta)^w_i)
 
-            // Obliczamy dla k od 1 do w_i
             double sumProb = 0.0;
             for (int k = 1; k <= w_i; k++) {
                 double binom = Combinatorial.binomialCoefficient(w_i, k);
@@ -140,7 +144,6 @@ public class MFN {
         return 0.5 + coefficient * expPart * sum;
     }
 
-    // Pomocnicza metoda do silni podwójnej (n!!)
     private static double doubleFactorial(int n) {
         if (n <= 1) return 1;
         double res = 1;
